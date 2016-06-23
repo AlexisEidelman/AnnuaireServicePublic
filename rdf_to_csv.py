@@ -58,7 +58,8 @@ tab.isnull().sum()
 for col in tab.columns:
     print(tab[col].value_counts().head(3))
 
-# certaines lignes ne semblent pas porter beaucoup d'informations
+# certaines lignes correspondent à des associations :
+# liens entre les entité
 cols_remplies_seules = [
     'http://www.mondeca.com/system/basicontology#created_the',
     'http://www.mondeca.com/system/basicontology#updated_the',
@@ -66,11 +67,31 @@ cols_remplies_seules = [
     'http://www.mondeca.com/system/t3#nt',
     'http://www.w3.org/1999/02/22-rdf-syntax-ns#type',
     ]
-sans_info = tab.drop(cols_remplies_seules, axis=1)
-sans_info.dropna(how='all', inplace=True)
-# c'est des assoc ?
+# en gros, bt, c'est l'enfant et nt c'est le parent
 
-tab = tab[tab.index.isin(sans_info.index)]
+sans_liens = tab.drop(cols_remplies_seules, axis=1)
+sans_liens.dropna(how='all', inplace=True)
+# tab.loc[tab.index.isin(sans_liens.index), cols_remplies_seules].notnull().sum()
+entites = tab.loc[tab.index.isin(sans_liens.index)].drop(
+    ['http://www.mondeca.com/system/t3#bt', 'http://www.mondeca.com/system/t3#nt'
+    ], axis=1)
+# entites['http://www.w3.org/1999/02/22-rdf-syntax-ns#type'].value_counts()
+# => on a plusieurs types
 # 7336 lignes
+
+assoc = tab.loc[~tab.index.isin(sans_liens.index), cols_remplies_seules]
+# assoc['http://www.w3.org/1999/02/22-rdf-syntax-ns#type'].value_counts()
+# => on n'a qu'un seul type
+del assoc['http://www.w3.org/1999/02/22-rdf-syntax-ns#type']
+# 6538 lignes
+
+joined = entites.reset_index().merge(assoc, #left_index=True, 
+                       left_on='index',
+                       right_on='http://www.mondeca.com/system/t3#nt',
+                       how='left')
+
+joined['http://www.mondeca.com/system/t3#bt'].value_counts(dropna=False)
+joined[joined['http://www.mondeca.com/system/t3#bt'].isnull()]
+xxx
 
 tab.to_csv('AnnuaireServicePublic.csv')
