@@ -92,6 +92,52 @@ joined = entites.reset_index().merge(assoc, #left_index=True,
 
 joined['http://www.mondeca.com/system/t3#bt'].value_counts(dropna=False)
 joined[joined['http://www.mondeca.com/system/t3#bt'].isnull()]
-xxx
 
-tab.to_csv('AnnuaireServicePublic.csv')
+joined.columns = joined.columns.tolist()[:-2] + ['parent', 'id']
+# (joined['index'] == joined['id'])[joined['id'].notnull()].all() is True
+del joined['id']
+
+# on peut probablement retirer ces éléments :
+joined = joined[~joined['index'].str.contains('df')]
+
+### 
+
+
+joined['parent'].fillna('source', inplace=True)
+variables_fiche = ['http://www.w3.org/2000/01/rdf-schema#label',
+                   'df/sigle']
+
+
+# Utilisation de NetworkX
+import networkx as nx
+G=nx.Graph()
+                   
+usefull = joined[variables_fiche + ['parent', 'index']]
+usefull.columns = ['label', 'sigle', 'parent', 'index']
+
+usefull['sigle'].fillna('nc.', inplace=True)
+usefull['label'].fillna('nc.', inplace=True)
+
+G = nx.from_pandas_dataframe(
+    usefull, 
+    'parent', 'index', ['label', 'sigle'],
+    nx.DiGraph()
+    )
+
+
+def recursive_run(item, dico_values):
+    children = [recursive_run(el, G[item][el]) 
+                for el in G.successors_iter(item)]
+    dico_values['name'] = item
+    if len(children) != 0:
+        dico_values['children'] = children
+    return dico_values
+
+
+tree = recursive_run('source', dict())
+import json
+with open('data3.json', 'w') as outfile:
+    json.dump(tree, outfile, indent=2, sort_keys=True)
+
+
+joined.to_csv('AnnuaireServicePublic.csv', index=False)
