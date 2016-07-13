@@ -12,8 +12,11 @@ Il y a 223874 triplets
 
 """
 
+import json
 import rdflib
 import pandas as pd
+import networkx as nx
+
 
 def all_triplets():
     ''' la requete de tous les triplets '''
@@ -56,6 +59,43 @@ def _only_notnull_columns(tab):
     return tab[_notnull_columns(tab)]
 
 
+def find_association(tab):
+    ''' recupere les triplets avec un lien parent/enfant '''
+    type_ = tab["http://www.w3.org/1999/02/22-rdf-syntax-ns#type"]
+
+    # certaines lignes correspondent à des associations :
+    association = tab[type_ == 'http://www.mondeca.com/system/t3#BN']    
+    association = _only_notnull_columns(association)
+    # en gros, nt, Narrower Term c'est l'enfant
+    # bt, Broader Term, c'est le parent
+    association.rename(columns={
+        'http://www.mondeca.com/system/t3#bt': 'parent',
+        'http://www.mondeca.com/system/t3#nt': 'enfant',
+        },
+        inplace=True)
+    
+    # il y a aussi les autres hiérarchies
+    AutreHierarchie = tab[type_ == 'df/AutreHierarchie']
+    AutreHierarchie = _only_notnull_columns(AutreHierarchie)
+    AutreHierarchie.rename(columns={
+        'df/serviceFils': 'enfant',
+        'df/servicePere': 'parent',
+        },
+        inplace=True)    
+    
+    return AutreHierarchie.append(association)
+
+
+def recursive_run(G, item, dico_values):
+    ''' crée un dictionnaire à partir d'un Graph '''
+    children = [recursive_run(G, el, G[item][el]) 
+                for el in G.successors_iter(item)]
+    dico_values['name'] = item
+    if len(children) != 0:
+        dico_values['children'] = children
+    return dico_values
+
+
 g = rdflib.Graph()
 g.parse('annuaire_gouv.rdf', format='xml')
 data = all_triplets()
@@ -72,61 +112,7 @@ tab.isnull().sum()
 for col in tab.columns:
     print(tab[col].value_counts().head(3))
 
-
-def find_association(tab):
-    type_ = tab["http://www.w3.org/1999/02/22-rdf-syntax-ns#type"]
-
-    # certaines lignes correspondent à des associations :
-    # liens entre les entité
-    association = tab[type_ == 'http://www.mondeca.com/system/t3#BN']    
-    association = _only_notnull_columns(association)
-    # en gros, nt, Narrower Term c'est l'enfant
-    # bt, Broader Term, c'est le parent
-    association.rename(columns={
-        'http://www.mondeca.com/system/t3#bt': 'parent',
-        'http://www.mondeca.com/system/t3#nt': 'enfant',
-        },
-        inplace=True)
-    
-    AutreHierarchie = tab[type_ == 'df/AutreHierarchie']
-    AutreHierarchie = _only_notnull_columns(AutreHierarchie)
-    AutreHierarchie.rename(columns={
-        'df/serviceFils': 'enfant',
-        'df/servicePere': 'parent',
-        },
-        inplace=True)    
-    
-    return AutreHierarchie.append(association)   
-    #    # ancienne version
-    #        cols_association = [
-    #            'http://www.mondeca.com/system/basicontology#created_the',
-    #            'http://www.mondeca.com/system/basicontology#updated_the',
-    #            'http://www.mondeca.com/system/t3#bt',
-    #            'http://www.mondeca.com/system/t3#nt',
-    #            'http://www.w3.org/1999/02/22-rdf-syntax-ns#type',
-    #            ]
-    #        # en gros, bt, c'est l'enfant et nt c'est le parent
-    #        
-    #        sans_liens = tab.drop(cols_association, axis=1)
-    #        sans_liens.dropna(how='all', inplace=True)
-    #        # tab.loc[tab.index.isin(sans_liens.index), cols_remplies_seules].notnull().sum()
-    #        entites = tab.loc[tab.index.isin(sans_liens.index)].drop(
-    #            ['http://www.mondeca.com/system/t3#bt', 'http://www.mondeca.com/system/t3#nt'
-    #            ], axis=1)
-    #        # entites['http://www.w3.org/1999/02/22-rdf-syntax-ns#type'].value_counts()
-    #        # => on a plusieurs types
-    #        # 7336 lignes
-    #        
-    #        assoc = tab.loc[~tab.index.isin(sans_liens.index), cols_association]
-    #        # assoc['http://www.w3.org/1999/02/22-rdf-syntax-ns#type'].value_counts()
-    #        # => on n'a qu'un seul type
-    #        del assoc['http://www.w3.org/1999/02/22-rdf-syntax-ns#type']
-    #        # 6538 lignes
-    # return association
-
 assoc = find_association(tab)
-
-entites = assoc['enfant'].tolist() + assoc['parent'].tolist()
 
 # on ne garde que certain types peut probablement retirer ces éléments :
 type_entity = tab["http://www.w3.org/1999/02/22-rdf-syntax-ns#type"]
@@ -140,61 +126,44 @@ tab_avec_liens = tab1.reset_index().merge(assoc, #left_index=True,
     suffixes=('','_lien'),
     indicator=True)
 
+
 #, 'df/Ministere',
 # à df/ministère correspondent les département et des entités
 # qui existe par ailleurs. On peu supprimer
-# qui sont le 13 qui n'ont pas de parent ?
+# qui sont le 13 qui n'ont pas de parent ? c'et :
 tab_avec_liens[tab_avec_liens._merge == 'left_only']
 
 # TODO: gérer les autres hiérarchie
 
 # TODO: regarde les départements
 tab_avec_liens[type_entity == 'df/Ministere']
-joined = tab_avec_liens
-joined[type_entity == 'df/Ministere'].notnull().sum()
-joined[joined['index'] == "itm:n#_180995"]
-
-joined = joined[~joined['http://www.w3.org/2000/01/rdf-schema#label'].str.contains('<< Dép.')]
+tab_avec_liens[~tab_avec_liens['http://www.w3.org/2000/01/rdf-schema#label'].str.contains('<< Dép.')]
 # => on retire 101 lignes
 
+def tree_from_df(tab_avec_liens):
+    G = nx.Graph()
+    variables_fiche = ['http://www.w3.org/2000/01/rdf-schema#label',
+                       'df/sigle']
+    tab_avec_liens['parent'].fillna('source', inplace=True)
+    usefull = tab_avec_liens[variables_fiche + ['parent', 'index']]
+    usefull.columns = ['label', 'sigle', 'parent', 'index']
+    
+    usefull['sigle'].fillna('nc.', inplace=True)
+    usefull['label'].fillna('nc.', inplace=True)
+    
+    G = nx.from_pandas_dataframe(
+        usefull, 
+        'parent', 'index', ['label', 'sigle'],
+        nx.DiGraph()
+        )
+    
+    tree = recursive_run(G, 'source', dict())
+    tree['label'] = 'source'
+    return tree
 
 
-
-
-
-# Utilisation de NetworkX
-import networkx as nx
-G=nx.Graph()
-
-variables_fiche = ['http://www.w3.org/2000/01/rdf-schema#label',
-                   'df/sigle']
-tab_avec_liens['parent'].fillna('source', inplace=True)
-usefull = tab_avec_liens[variables_fiche + ['parent', 'index']]
-usefull.columns = ['label', 'sigle', 'parent', 'index']
-
-usefull['sigle'].fillna('nc.', inplace=True)
-usefull['label'].fillna('nc.', inplace=True)
-
-G = nx.from_pandas_dataframe(
-    usefull, 
-    'parent', 'index', ['label', 'sigle'],
-    nx.DiGraph()
-    )
-
-
-def recursive_run(G, item, dico_values):
-    children = [recursive_run(G, el, G[item][el]) 
-                for el in G.successors_iter(item)]
-    dico_values['name'] = item
-    if len(children) != 0:
-        dico_values['children'] = children
-    return dico_values
-
-tree = recursive_run(G, 'source', dict())
-tree['label'] = 'source'
-import json
+tree = tree_from_df(tab_avec_liens)
 with open('data.json', 'w') as outfile:
     json.dump(tree, outfile, indent=2, sort_keys=True)
-
 
 tab_avec_liens.to_csv('AnnuaireServicePublic.csv', index=False)
