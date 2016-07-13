@@ -12,6 +12,7 @@ Il y a 223874 triplets
 
 """
 
+import os
 import json
 import rdflib
 import pandas as pd
@@ -118,7 +119,7 @@ def tree_from_df(tab_avec_liens):
     return tree
 
 
-def stat(tab):
+def stat(tab, tab2):
     len(tab) # 13877 lignes
     len(tab.columns) # 50 colonnes = 50 prédicats différents
     ## propriété de la table
@@ -131,35 +132,41 @@ def stat(tab):
     # à df/ministère correspondent les département et des entités
     # qui existe par ailleurs. On peu supprimer
     # qui sont le 13 qui n'ont pas de parent ? c'et :
-    tab_avec_liens[tab_avec_liens._merge == 'left_only']
-
+    tab2[tab2._merge == 'left_only']
+    type_entity = tab2["http://www.w3.org/1999/02/22-rdf-syntax-ns#type"]
     # TODO: regarde les départements
-    tab_avec_liens[type_entity == 'df/Ministere']
-    tab_avec_liens[~tab_avec_liens['http://www.w3.org/2000/01/rdf-schema#label'].str.contains('<< Dép.')]
+    tab2[type_entity == 'df/Ministere']
+    tab2[~tab2['http://www.w3.org/2000/01/rdf-schema#label'].str.contains('<< Dép.')]
     # => on retire 101 lignes
 
-g = rdflib.Graph()
-g.parse('annuaire_gouv.rdf', format='xml')
-data = all_triplets()
-diction = triplets_to_dict(data)
-tab = pd.DataFrame.from_dict(diction).T
-tab.drop_duplicates(inplace=True)
-assoc = find_association(tab)
-# on ne garde que certain types peut probablement retirer ces éléments :
-type_entity = tab["http://www.w3.org/1999/02/22-rdf-syntax-ns#type"]
-tab_entities = tab[type_entity == 'an/ServiceRAF'].reset_index()
-# on reset index parce que l'on veut conserver ça pendant le merge
 
-tab_avec_liens = tab_entities.merge(assoc,
-    left_on='index',
-    right_on='enfant',
-    how='left',
-    suffixes=('','_lien'),
-    indicator=True)
+def rdf_extraction(name):
+    g = rdflib.Graph()
+    g.parse(name + '.rdf', format='xml')
+    data = all_triplets()
+    diction = triplets_to_dict(data)
+    tab = pd.DataFrame.from_dict(diction).T
+    tab.drop_duplicates(inplace=True)
+    assoc = find_association(tab)
+    # on ne garde que certain types peut probablement retirer ces éléments :
+    type_entity = tab["http://www.w3.org/1999/02/22-rdf-syntax-ns#type"]
+    tab_entities = tab[type_entity == 'an/ServiceRAF'].reset_index()
+    # on reset index parce que l'on veut conserver ça pendant le merge
+    
+    tab_avec_liens = tab_entities.merge(assoc,
+        left_on='index',
+        right_on='enfant',
+        how='left',
+        suffixes=('','_lien'),
+        indicator=True)
+    
+    tree = tree_from_df(tab_avec_liens)
+    json_name = os.path.join('json', name + '.json')
+    csv_name = os.path.join('csv', name + '.csv')
+    with open(json_name, 'w') as outfile:
+        json.dump(tree, outfile, indent=2, sort_keys=True)
+    
+    tab_avec_liens.to_csv(csv_name, index=False)
 
-
-tree = tree_from_df(tab_avec_liens)
-with open('data.json', 'w') as outfile:
-    json.dump(tree, outfile, indent=2, sort_keys=True)
-
-tab_avec_liens.to_csv('AnnuaireServicePublic.csv', index=False)
+## test
+#rdf_extraction('annuaire_gouv')
