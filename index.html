@@ -1,31 +1,60 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
-<style>
+<style type="text/css">
 
-.node circle {
-  fill: #fff;
-  stroke: steelblue;
-  stroke-width: 1.5px;
-}
+	.node {
+    cursor: pointer;
+  }
 
-.node {
-  font: 10px sans-serif;
-}
+  .overlay{
+      background-color:#EEE;
+  }
 
-.link {
-  fill: none;
-  stroke: #ccc;
-  stroke-width: 1.5px;
-}
+  .node circle {
+    fill: #fff;
+    stroke: steelblue;
+    stroke-width: 1.5px;
+  }
+
+  .node text {
+    font-size:10px;
+    font-family:sans-serif;
+  }
+
+  .link {
+    fill: none;
+    stroke: #ccc;
+    stroke-width: 1.5px;
+  }
+
+  .templink {
+    fill: none;
+    stroke: red;
+    stroke-width: 3px;
+  }
+
+  .ghostCircle.show{
+      display:block;
+  }
+
+  .ghostCircle, .activeDrag .ghostCircle{
+       display: none;
+  }
 
 </style>
-<body>
+
+<script src="http://code.jquery.com/jquery-1.10.2.min.js"></script>
 <script src="js//d3.js"></script>
 <script src="js///circular.js"></script>
 <script src="js///tree.js"></script>
+<script src="js//dndTree.js"></script>
 
+<body>
+    <div id="tree-container"></div>
+</body>
 <script>
 
+// dndTree('data3.json')
 load_tree(960, 'data3.json')
-// load_circular(3960, 'data3.json')
+// load_circular(3960, 'data4.json')
 </script>
