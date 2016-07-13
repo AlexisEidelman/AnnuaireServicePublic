@@ -96,50 +96,6 @@ def recursive_run(G, item, dico_values):
     return dico_values
 
 
-g = rdflib.Graph()
-g.parse('annuaire_gouv.rdf', format='xml')
-data = all_triplets()
-diction = triplets_to_dict(data)
-tab = pd.DataFrame.from_dict(diction).T
-# 13877 lignes
-# 50 colonnes = 50 prédicats différents
-
-# il y a 3 doublons : tab.duplicated().sum()
-tab.drop_duplicates(inplace=True)
-
-## propriété de la table
-tab.isnull().sum()
-for col in tab.columns:
-    print(tab[col].value_counts().head(3))
-
-assoc = find_association(tab)
-
-# on ne garde que certain types peut probablement retirer ces éléments :
-type_entity = tab["http://www.w3.org/1999/02/22-rdf-syntax-ns#type"]
-list_types = ['an/ServiceRAF'] # 'df/AutreHierarchie']
-tab1 = tab[type_entity == 'an/ServiceRAF']
-
-tab_avec_liens = tab1.reset_index().merge(assoc, #left_index=True, 
-    left_on='index',
-    right_on='enfant',
-    how='left',
-    suffixes=('','_lien'),
-    indicator=True)
-
-
-#, 'df/Ministere',
-# à df/ministère correspondent les département et des entités
-# qui existe par ailleurs. On peu supprimer
-# qui sont le 13 qui n'ont pas de parent ? c'et :
-tab_avec_liens[tab_avec_liens._merge == 'left_only']
-
-# TODO: gérer les autres hiérarchie
-
-# TODO: regarde les départements
-tab_avec_liens[type_entity == 'df/Ministere']
-tab_avec_liens[~tab_avec_liens['http://www.w3.org/2000/01/rdf-schema#label'].str.contains('<< Dép.')]
-# => on retire 101 lignes
-
 def tree_from_df(tab_avec_liens):
     G = nx.Graph()
     variables_fiche = ['http://www.w3.org/2000/01/rdf-schema#label',
@@ -160,6 +116,46 @@ def tree_from_df(tab_avec_liens):
     tree = recursive_run(G, 'source', dict())
     tree['label'] = 'source'
     return tree
+
+
+def stat(tab):
+    len(tab) # 13877 lignes
+    len(tab.columns) # 50 colonnes = 50 prédicats différents
+    ## propriété de la table
+    tab.isnull().sum()
+    for col in tab.columns:
+        print(tab[col].value_counts().head(3))
+    # il y a 3 doublons : tab.duplicated().sum()
+
+    #, 'df/Ministere',
+    # à df/ministère correspondent les département et des entités
+    # qui existe par ailleurs. On peu supprimer
+    # qui sont le 13 qui n'ont pas de parent ? c'et :
+    tab_avec_liens[tab_avec_liens._merge == 'left_only']
+
+    # TODO: regarde les départements
+    tab_avec_liens[type_entity == 'df/Ministere']
+    tab_avec_liens[~tab_avec_liens['http://www.w3.org/2000/01/rdf-schema#label'].str.contains('<< Dép.')]
+    # => on retire 101 lignes
+
+g = rdflib.Graph()
+g.parse('annuaire_gouv.rdf', format='xml')
+data = all_triplets()
+diction = triplets_to_dict(data)
+tab = pd.DataFrame.from_dict(diction).T
+tab.drop_duplicates(inplace=True)
+assoc = find_association(tab)
+# on ne garde que certain types peut probablement retirer ces éléments :
+type_entity = tab["http://www.w3.org/1999/02/22-rdf-syntax-ns#type"]
+tab_entities = tab[type_entity == 'an/ServiceRAF'].reset_index()
+# on reset index parce que l'on veut conserver ça pendant le merge
+
+tab_avec_liens = tab_entities.merge(assoc,
+    left_on='index',
+    right_on='enfant',
+    how='left',
+    suffixes=('','_lien'),
+    indicator=True)
 
 
 tree = tree_from_df(tab_avec_liens)
