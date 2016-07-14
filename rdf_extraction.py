@@ -19,7 +19,7 @@ import pandas as pd
 import networkx as nx
 
 
-def all_triplets():
+def all_triplets(g):
     ''' la requete de tous les triplets '''
     DF = rdflib.Namespace('http://www.df.gouv.fr/administration_francaise/annuaire#')
     requete =  g.query("""SELECT ?a ?b ?c
@@ -142,8 +142,9 @@ def stat(tab, tab2):
 
 def rdf_extraction(name):
     g = rdflib.Graph()
-    g.parse(name + '.rdf', format='xml')
-    data = all_triplets()
+    origin_file = os.path.join('data', name + '.rdf')
+    g.parse(origin_file, format='xml')
+    data = all_triplets(g)
     diction = triplets_to_dict(data)
     tab = pd.DataFrame.from_dict(diction).T
     tab.drop_duplicates(inplace=True)
@@ -159,6 +160,7 @@ def rdf_extraction(name):
         how='left',
         suffixes=('','_lien'),
         indicator=True)
+    tab_avec_liens.sort(['index', 'parent'], inplace=True)
     
     tree = tree_from_df(tab_avec_liens)
     json_name = os.path.join('json', name + '.json')
