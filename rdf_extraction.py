@@ -60,6 +60,17 @@ def _only_notnull_columns(tab):
     return tab[_notnull_columns(tab)]
 
 
+def replace_item(tab):
+    items = [item for item in tab.index if item[:7] == 'itm:n#_']
+    label = tab.loc[items]
+    tab = tab[~tab.index.isin(items)]
+    # ne garde que les colonnes non vides
+    label = label[label.columns[label.notnull().sum() > 0]]
+    replacement = label['http://www.w3.org/2000/01/rdf-schema#label'].to_dict()
+    tab.replace(replacement, inplace=True)
+    return tab
+
+
 def find_association(tab):
     ''' recupere les triplets avec un lien parent/enfant '''
     type_ = tab["http://www.w3.org/1999/02/22-rdf-syntax-ns#type"]
@@ -139,8 +150,23 @@ def stat(tab, tab2):
     tab2[~tab2['http://www.w3.org/2000/01/rdf-schema#label'].str.contains('<< Dép.')]
     # => on retire 101 lignes
 
+#rdf_extraction('annuaire_gouv')
+def create_dico_to_json(df):    
+    dico_to_json = dict()
+    for row in df.values:
+        element_ligne = dict([
+                (colname, str(row[i]))
+                for i, colname in enumerate(df.columns)
+                if row[i] != 'nc.'
+            ])
+        label = element_ligne['http://www.w3.org/2000/01/rdf-schema#label']
+        del element_ligne['http://www.w3.org/2000/01/rdf-schema#label']
+        dico_to_json[label] = element_ligne
+    return dico_to_json
+
 
 def rdf_extraction(name):
+    print(name)
     g = rdflib.Graph()
     origin_file = os.path.join('data', name + '.rdf')
     g.parse(origin_file, format='xml')
@@ -149,8 +175,10 @@ def rdf_extraction(name):
     tab = pd.DataFrame.from_dict(diction).T
     tab.drop_duplicates(inplace=True)
     assoc = find_association(tab)
+    tab = replace_item(tab) # cette étape est longue
     # on ne garde que certain types peut probablement retirer ces éléments :
     type_entity = tab["http://www.w3.org/1999/02/22-rdf-syntax-ns#type"]
+    type_conserves = ['an/ServiceRAF', 'df/Ministere']
     tab_entities = tab[type_entity == 'an/ServiceRAF'].reset_index()
     # on reset index parce que l'on veut conserver ça pendant le merge
     
@@ -160,15 +188,17 @@ def rdf_extraction(name):
         how='left',
         suffixes=('','_lien'),
         indicator=True)
-    tab_avec_liens.sort(['index', 'parent'], inplace=True)
+    tab_avec_liens.sort_values(['index', 'parent'], inplace=True)
+    del tab_avec_liens['_merge']
+    tab_avec_liens.fillna('nc.', inplace=True)
+    #tree = tree_from_df(tab_avec_liens)
+    tree = create_dico_to_json(tab_avec_liens)
     
-    tree = tree_from_df(tab_avec_liens)
     json_name = os.path.join('json', name + '.json')
     csv_name = os.path.join('csv', name + '.csv')
-    with open(json_name, 'w') as outfile:
-        json.dump(tree, outfile, indent=2, sort_keys=True)
     
-    tab_avec_liens.to_csv(csv_name, index=False)
+    
+    with open(json_name, 'w', encoding='utf8') as outfile:
+        json.dump(tree, outfile, indent=2, sort_keys=True, ensure_ascii=False) 
 
-## test
-#rdf_extraction('annuaire_gouv')
+    tab_avec_liens.to_csv(csv_name, index=False)    
