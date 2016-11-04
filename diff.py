@@ -15,19 +15,24 @@ files.sort()
 
 name1, name2 = files[:2]
 
-def load(name):
+def load(name, drop=None):
     file = os.path.join('csv', name)
     tab = pd.read_csv(file)
+    if drop is not None:
+        assert isinstance(drop, list)
+        assert all([x in tab.columns for x in drop])
+        to_keep = [x for x in tab.columns if x not in drop]
+        tab = tab[to_keep]
     return tab
 
 
 
-def diff_csv(name1, name2, verbose=True):
+def diff_csv(name1, name2, verbose=True, drop=None):
     ''' effectue la différence des deux csv
         retourne les lignes pour lesquelles les informations 
         dans '''
-    tab1 = load(name1)
-    tab2 = load(name2)
+    tab1 = load(name1, drop)
+    tab2 = load(name2, drop)
     
     merge = tab1.merge(tab2, on = ['index', 'parent'],
                    indicator=True, how='outer')
@@ -57,13 +62,13 @@ def diff_csv(name1, name2, verbose=True):
     return diff[['index', 'parent'] + cols_x]
 
 
-def revient_a_la_valeur_initiale(name1, name2, name3):
+def revient_a_la_valeur_initiale(name1, name2, name3, drop=None):
     ''' regarde si les valeurs sont les mêmes dans name1 et name3 alors 
     qu'elles sont différentes dans name2
     '''
-    tab1 = load(name1)
-    tab2 = load(name2)
-    tab3 = load(name2)
+    tab1 = load(name1, drop)
+    tab2 = load(name2, drop)
+    tab3 = load(name2, drop)
     
     merge = tab1.merge(tab2, on = ['index', 'parent']). \
         merge(tab3, on = ['index', 'parent'])
@@ -91,16 +96,27 @@ if __name__ == '__main__':
     test = revient_a_la_valeur_initiale('annuaire_20161019.csv',
                                         'annuaire_20161026.csv',
                                         'annuaire_20161102.csv')
-    
-    differents1 = diff_csv('annuaire_20161022.csv', 'annuaire_20161026.csv')
-    differents2 = diff_csv('annuaire_20161026.csv', 'annuaire_20161102.csv')
-    differents3 = diff_csv('annuaire_20161022.csv', 'annuaire_20161102.csv')
+    basic_drop =  ['http://www.mondeca.com/system/basicontology#updated_the',
+                   'an/telecopie', 'an/telephone']                             
+    differents1 = diff_csv('annuaire_20161022.csv', 'annuaire_20161026.csv',
+                           drop = basic_drop)
+    differents2 = diff_csv('annuaire_20161026.csv', 'annuaire_20161102.csv',
+                           drop = basic_drop)
+    differents3 = diff_csv('annuaire_20161022.csv', 'annuaire_20161102.csv',
+                           drop = basic_drop)
 
     for col in differents1.columns:
             if differents1[col].nunique() > 1:
-                print(differents1[col].value_counts())
-                print(differents2[col].value_counts())
+                print(differents1[col].value_counts().head())
+                print(differents2[col].value_counts().head())
                 print('\n')
+                
+    for tab in [differents1, differents2, differents3]:
+        print('en tout on a {} changement'.format(len(tab)))        
+        changements = tab.notnull().sum()
+        changements.drop(['parent', 'index'], inplace=True)        
+        changements.sort_values(ascending=False, inplace=True)
+        print(changements.head(6))
         
         
 #Il y a des choses étonnantes dans les adresses des sites web par exemple. 
