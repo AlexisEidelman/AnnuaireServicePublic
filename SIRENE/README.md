@@ -13,7 +13,6 @@ Relier les entrées de la base Sirene avec les données de l'annuaire de l'admin
 ## Faisabilité 
 
 Les données existent. En effet sur [cette page](http://www.insee.fr/fr/methodes/default.asp?page=definitions/sirene-secteur-public.htm) du site de l'Insee, on trouve le passage suivant :
-Ou encore mieux [là](http://www.insee.fr/fr/methodes/default.asp?page=nomenclatures/agregatnaf2008/agregatnaf2008.htm)
 
 >C'est en 1983 que la mission d'immatriculation au répertoire a été étendue au secteur public. L'unité SIREN est appelée organisme lorsqu'elle relève du secteur non marchand. Elle couvre donc normalement les personnes morales que constituent l'État, les collectivités territoriales et les établissements publics.
 >
@@ -29,7 +28,7 @@ Ou encore mieux [là](http://www.insee.fr/fr/methodes/default.asp?page=nomenclat
 
 Plusieurs idées :
 
-* utiliser le code naf et en particulier [celles commençant par 84](http://www.insee.fr/fr/methodes/default.asp?page=nomenclatures/naf2008/n1_o.htm)
+* utiliser le code [naf](http://www.insee.fr/fr/methodes/default.asp?page=nomenclatures/agregatnaf2008/agregatnaf2008.htm) et en particulier [celles commençant par 84](http://www.insee.fr/fr/methodes/default.asp?page=nomenclatures/naf2008/n1_o.htm)
 * utiliser [la nomenclature des catégories juridiques](http://www.insee.fr/fr/methodes/default.asp?page=nomenclatures/cj/cj-arbre.htm)
 
 ### Comment faire le lien entre SIRENE et Annuaire ?
