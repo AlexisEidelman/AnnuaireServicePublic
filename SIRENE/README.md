@@ -54,3 +54,18 @@ Des questions sont ouvertes :
 * Lorsqu'on a plusieurs établissements, est-ce que cela correspond à une arborescence de l'annuaire ?
 
 
+## Notes:
+
+### Mise à jour des données de l'administration dans SIRENE.
+
+Il y a trois fonctions publiques : 
+* Hospitalière : on essaie d'être cohérent avec FINESS (on ne rentre pas d'unité dans SIRENE qui n'a pas de numéro Finess). Il y a parfois plusieurs lignes quand il y a plusieurs lignes dans FINESS quand il y a plusieurs services mais pas dans SIRENE.
+* Les collectivités territoriales : il y a des obligations fortes pour qu'elles utilisent SIREN, SIRET parce qu'elles emploient et passent des contrats. Les prefectures envoient les infos. Pas de gestions automatiques.
+* La Dila (a priori) devrait transmettre automatiquement mais ça se fait mal. Rermarque: tout le monde doit avoir un SIREN/SIRET pour utiliser chorus.
+Les services déconcentrés, c'est soit les prefectures, soit les administrations elle-même.
+
+Dans la fonction publique d'Etat, la personnalité juridique c'est l'Etat donc dans SIRENE, c'est par convention qu'on attribue à des SIREN qui va à des ordonnateurs.
+
+Les infos récupérées par l'Insee pour la base SIRENE, c'est le Nom, l'adresse, le ministère de tutelle.
+
+
