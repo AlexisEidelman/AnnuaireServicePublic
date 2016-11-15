@@ -47,3 +47,10 @@ Des questions sont ouvertes :
 * Quelle(s) adresse(s) doit-être conservée(s) ? Celle de l'annuaire ? Celle de SIRENE ?
 * ...
 
+
+### Autres choses
+
+* Regarder les SIREN disparu des entités publiques (mais on a seulement les établissements actifs).
+* Lorsqu'on a plusieurs établissements, est-ce que cela correspond à une arborescence de l'annuaire ?
+
+
