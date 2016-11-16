@@ -29,10 +29,10 @@ iter_csv = pd.read_csv(path_file,  sep=';',
                        iterator=True, 
                        chunksize=100000)
 
-df = pd.concat([tab[tab['NJ'].astype(str).str[0] == '7'] 
+df = pd.concat([tab[tab['NJ'].astype(str).str[0].isin(['4','7'])]
     for tab in iter_csv])
 
-path_output = os.path.join(path, 'sirene_NJ_7.csv')
+path_output = os.path.join(path, 'sirene_NJ_4_et_7.csv')
 df.to_csv(path_output,  sep=';',
                        encoding='cp1252',
                        iterator=True, 
