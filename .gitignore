@@ -91,10 +91,4 @@ ENV/
 
 annuaire_gouv.rdf
 AnnuaireServicePublic.csv
-data_old/*
-data/*
-zip/*
-csv/*
-zip_old/*
-*.json
 

@@ -17,6 +17,8 @@ import urllib
 from bs4 import BeautifulSoup
 import zipfile
 
+from annuaire.config_annuaire import path
+
 url_path = 'https://echanges.dila.gouv.fr/OPENDATA/RefOrgaAdminEtat/FluxHistorique/2017-FluxCourant'
 
 def _get_version(filename):
@@ -45,7 +47,7 @@ files = [x for x in files if x is not None and 'latest' not in x]
 files.remove('#index')
 
 def downalod_zip(url_path, file):
-    dest_path = os.path.join('zip', _get_version(file) + '.zip')
+    dest_path = os.path.join(path['zip'], _get_version(file) + '.zip')
     if not os.path.exists(dest_path):
         url = urllib.parse.urljoin(url_path, file)
         data = urllib.request.urlopen(url)
@@ -54,13 +56,13 @@ def downalod_zip(url_path, file):
 
 def extract_file(file):
     ''' extrait le fichier et le renomme '''
-    new_name = os.path.join('data',
+    new_name = os.path.join(path['data'],
                              _get_version(file) + '.rdf')
     if not os.path.exists(new_name):                       
-        dest_path = os.path.join('zip', file[-12:])
+        dest_path = os.path.join(path['zip'], file[-12:])
         tar = zipfile.ZipFile(dest_path)
-        tar.extractall('data')
-        old_name = os.path.join('data',
+        tar.extractall(path['data'])
+        old_name = os.path.join(path['data'],
                                  os.path.basename(file)[:-4] + '.rdf')
         os.rename(old_name, new_name)
 

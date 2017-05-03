@@ -8,8 +8,12 @@ Created on Tue Jul 19 18:01:29 2016
 import pandas as pd
 import graphistry
 
-test = pd.read_csv('csv\\annuaire_20160629.csv', sep=',', 
-                   encoding='cp1252')
+
+from annuaire.load import load_csv
+
+test = load_csv('20160905.csv')
+
+
 test.rename(columns={
     'http://www.w3.org/2000/01/rdf-schema#label': 'label',
     },

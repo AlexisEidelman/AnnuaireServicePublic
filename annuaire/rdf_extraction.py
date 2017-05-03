@@ -18,6 +18,7 @@ import rdflib
 import pandas as pd
 import networkx as nx
 
+from annuaire.config_annuaire import path
 
 def all_triplets(g):
     ''' la requete de tous les triplets '''
@@ -168,7 +169,7 @@ def create_dico_to_json(df):
 def rdf_extraction(name):
     print(name)
     g = rdflib.Graph()
-    origin_file = os.path.join('data', name + '.rdf')
+    origin_file = os.path.join(path['data'], name + '.rdf')
     g.parse(origin_file, format='xml')
     data = all_triplets(g)
     diction = triplets_to_dict(data)
@@ -194,8 +195,8 @@ def rdf_extraction(name):
     #tree = tree_from_df(tab_avec_liens)
     tree = create_dico_to_json(tab_avec_liens)
     
-    json_name = os.path.join('json', name + '.json')
-    csv_name = os.path.join('csv', name + '.csv')
+    json_name = os.path.join(path['json'], name + '.json')
+    csv_name = os.path.join(path['csv'], name + '.csv')
     
     
     with open(json_name, 'w', encoding='utf8') as outfile:

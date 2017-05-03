@@ -8,6 +8,8 @@ Created on Thu Sep  8 15:13:07 2016
 import os
 import git
 
+from annuaire.config_annuaire import path
+
 join = os.path.join
 
 repo = git.Repo(os.getcwd())            
@@ -16,7 +18,7 @@ index = repo.index
 
 past_commit_messages = [commit.message for commit in repo.iter_commits()]
 
-files = os.listdir('json')
+files = os.listdir(path['json'])
 files.sort()
 
 for file in files:
@@ -24,8 +26,8 @@ for file in files:
     name_commit = 'json ' + date
     if name_commit not in past_commit_messages:
         print(name_commit)
-        os.rename(join('json', file), join('json', 'annuaire.json'))
+        os.rename(join(path['json'], file), join(path['json'], 'annuaire.json'))
         index.add(['json/annuaire.json'])
         index.commit('json ' + date)
-        os.rename(join('json', 'annuaire.json'), join('json', file))
+        os.rename(join(path['json'], 'annuaire.json'), join(path['json'], file))
     
