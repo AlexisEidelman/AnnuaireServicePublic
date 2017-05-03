@@ -15,13 +15,20 @@ Il y a 223874 triplets
 import os
 import urllib
 from bs4 import BeautifulSoup
-import tarfile
+import zipfile
 
-url_path = 'https://lecomarquage.service-public.fr/annuaire_institutionnel/'
+url_path = 'https://echanges.dila.gouv.fr/OPENDATA/RefOrgaAdminEtat/FluxHistorique/2017-FluxCourant'
+
+def _get_version(filename):
+    return file[-12:-4]
 
 def read_list_of_tables(url_path):
     ''' charge l'url, et sort tous 
-        les éléments a avec href '''
+        les éléments a avec href 
+
+        Note le site de la dila exige désormais un niveau de sécurité SSL
+        compatible seulement avec la version 3.5.3 et supérieur de python
+        '''
     html = urllib.request.urlopen(url_path)
     html_page = html.read()
     
@@ -29,15 +36,16 @@ def read_list_of_tables(url_path):
     #le parsing est basique mais efficace pour l'instant
     files = []
     for link in soup.findAll('a'):
-        files.append(link.get('href'))    
+        files.append(link.get('href'))
+
     return files
 
 files = read_list_of_tables(url_path)
-files.remove('export_data_gouv_latest.tar.bz2')
-files.remove('../')
+files = [x for x in files if x is not None and 'latest' not in x]
+files.remove('#index')
 
 def downalod_zip(url_path, file):
-    dest_path = os.path.join('zip', file)
+    dest_path = os.path.join('zip', _get_version(file) + '.zip')
     if not os.path.exists(dest_path):
         url = urllib.parse.urljoin(url_path, file)
         data = urllib.request.urlopen(url)
@@ -47,15 +55,15 @@ def downalod_zip(url_path, file):
 def extract_file(file):
     ''' extrait le fichier et le renomme '''
     new_name = os.path.join('data',
-                             'annuaire_' + file[17:25] + '.rdf')
+                             _get_version(file) + '.rdf')
     if not os.path.exists(new_name):                       
-        dest_path = os.path.join('zip', file)
-        tar = tarfile.open(dest_path, "r:bz2")
+        dest_path = os.path.join('zip', file[-12:])
+        tar = zipfile.ZipFile(dest_path)
         tar.extractall('data')
         old_name = os.path.join('data',
-                                 'export_data_gouv.rdf')
+                                 os.path.basename(file)[:-4] + '.rdf')
         os.rename(old_name, new_name)
-    
+
 for file in files:
     downalod_zip(url_path, file)
     extract_file(file)
