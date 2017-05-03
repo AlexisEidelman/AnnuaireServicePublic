@@ -201,4 +201,4 @@ def rdf_extraction(name):
     with open(json_name, 'w', encoding='utf8') as outfile:
         json.dump(tree, outfile, indent=2, sort_keys=True, ensure_ascii=False) 
 
-    tab_avec_liens.to_csv(csv_name, index=False)    
+    tab_avec_liens.to_csv(csv_name, index=False, encoding='utf8')    
