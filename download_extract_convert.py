@@ -9,8 +9,8 @@ csv et en json
 
 import os
 
-from annuaire.rdf_extraction import rdf_extraction
-from annuaire.download import (
+from annuaire.get_data.rdf_extraction import rdf_extraction
+from annuaire.get_data.download import (
     read_list_of_tables, _get_version, downalod_zip, extract_file)
 from annuaire.config_annuaire import path
 
