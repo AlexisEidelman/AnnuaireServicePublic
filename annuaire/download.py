@@ -19,10 +19,8 @@ import zipfile
 
 from annuaire.config_annuaire import path
 
-url_path = 'https://echanges.dila.gouv.fr/OPENDATA/RefOrgaAdminEtat/FluxHistorique/2017-FluxCourant'
-
 def _get_version(filename):
-    return file[-12:-4]
+    return filename[-12:-4]
 
 def read_list_of_tables(url_path):
     ''' charge l'url, et sort tous 
@@ -42,9 +40,6 @@ def read_list_of_tables(url_path):
 
     return files
 
-files = read_list_of_tables(url_path)
-files = [x for x in files if x is not None and 'latest' not in x]
-files.remove('#index')
 
 def downalod_zip(url_path, file):
     dest_path = os.path.join(path['zip'], _get_version(file) + '.zip')
@@ -66,8 +61,21 @@ def extract_file(file):
                                  os.path.basename(file)[:-4] + '.rdf')
         os.rename(old_name, new_name)
 
-for file in files:
-    downalod_zip(url_path, file)
-    extract_file(file)
+
+if __name__ == '__main__':
+
+    url_path = 'https://echanges.dila.gouv.fr/OPENDATA/RefOrgaAdminEtat/FluxHistorique/2017-FluxCourant'
+
+    files = read_list_of_tables(url_path)
+    files = [x for x in files if x is not None and 'latest' not in x]
+    files.remove('#index')
+    
+    files_to_download = [x for x in files 
+        if _get_version(x) + '.rdf' not in os.listdir(path['data'])
+        ]
+            
+    for file in files:
+        downalod_zip(url_path, file)
+        extract_file(file)
     
 
