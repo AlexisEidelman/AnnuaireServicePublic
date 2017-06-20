@@ -5,11 +5,12 @@ Created on Tue Jul 19 18:01:29 2016
 @author: User
 """
 
+import os
 import pandas as pd
 import graphistry
 
-test = pd.read_csv('csv\\annuaire_20160629.csv', sep=',', 
-                   encoding='cp1252')
+test = pd.read_csv(os.path.join('csv','annuaire_20160611.csv'), sep=',', 
+                   encoding='utf8')
 test.rename(columns={
     'http://www.w3.org/2000/01/rdf-schema#label': 'label',
     },
@@ -35,5 +36,5 @@ ig = plotter.pandas2igraph(edges)
 igraph.summary(ig)
 
 ig.vs['pagerank'] = ig.pagerank()
-ig.vs['community'] = ig.community_infomap().membership 
+ig.vs['community'] = ig.community_infomap().membership
 igraph.summary(ig)
