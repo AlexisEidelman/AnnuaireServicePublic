@@ -25,3 +25,12 @@ Pour cela, il faudrait un historique des données.
 On trouve ici un [exemple](http://data.enseignementsup-recherche.gouv.fr/pages/explorer/?sort=modified&refine.publisher=Minist%C3%A8re%20de%20l%27%C3%89ducation%20nationale,%20de%20l%27Enseignement%20sup%C3%A9rieur%20et%20de%20la%20Recherche&q=siret) d'administrations avec un siret (à étudier).
 
 Voir comment les données sont dans le fichier SIRENE. Est-ce que l'on peut faire un lien avec les données.
+
+
+## installation
+
+```
+git clone https://github.com/AlexisEidelman/AnnuaireServicePublic.git
+cd Insalubrite
+pip install --editable .
+```
