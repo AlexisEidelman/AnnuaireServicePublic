@@ -11,7 +11,7 @@ import os
 import pandas as pd
 
 from load import load_csv
-
+from annuaire.config_annuaire import path
 
 def diff_csv(name1, name2, verbose=True, keep=None, drop=None):
     ''' effectue la différence des deux csv
@@ -20,14 +20,20 @@ def diff_csv(name1, name2, verbose=True, keep=None, drop=None):
     tab1 = load_csv(name1, drop, keep)
     tab2 = load_csv(name2, drop, keep)
     
-    merge = tab1.merge(tab2, on = ['index', 'parent'],
-                   indicator=True, how='outer')
+    merge_on = ['index']
+    merge = tab1.merge(tab2, on = merge_on,
+                   indicator=True, how='outer',
+                   suffixes=('_old','_new'))
+    
     
     if verbose:
+        print("Entre {} et {}, il y a {} nouvelles entrées et {} sorties".format(
+                name1, name2, sum(merge._merge == 'right_only'),
+                sum(merge._merge == 'left_only')))
         print(merge._merge.value_counts())
 
-    cols_x = [col for col in merge.columns if col[-2:] == '_x']
-    cols_y = [col for col in merge.columns if col[-2:] == '_y']
+    cols_x = [col for col in merge.columns if col[-2:] == '_old']
+    cols_y = [col for col in merge.columns if col[-2:] == '_new']
 
     merge_y = merge[cols_y].rename(columns=dict(x for x in zip(cols_y, cols_x)))
     similar = merge[cols_x] == merge_y 
@@ -39,13 +45,13 @@ def diff_csv(name1, name2, verbose=True, keep=None, drop=None):
             )
     
     if verbose:
-        print((~similar).sum())        
+        print((~similar).sum())
     
     diff = merge[differents]
     diff[cols_x] = diff[cols_x].mask(similar)
     diff[cols_y] = diff[cols_y].mask(similar)
     diff[cols_x] += ' -> ' + merge_y[differents]
-    return diff[['index', 'parent'] + cols_x + ['_merge']]
+    return diff[merge_on + cols_x + ['_merge']]
 
 
 def revient_a_la_valeur_initiale(name1, name2, name3, keep=None, drop=None):
@@ -83,6 +89,10 @@ if __name__ == '__main__':
 #                                        'annuaire_20161022.csv',
 #                                        'annuaire_20161026.csv')
 #                                        
+    path_csv = path['csv']
+    name1 = os.listdir(path_csv)[0]
+    name2 = os.listdir(path_csv)[1]
+    
     basic_drop =  ['http://www.mondeca.com/system/basicontology#updated_the',
                    'an/telecopie', 'an/telephone'] 
     keep_for_sirene = ['index', 'parent',
@@ -90,8 +100,7 @@ if __name__ == '__main__':
                        'an/adressePhysiqueVille',
                        'http://www.w3.org/2000/01/rdf-schema#label',
                        ]                            
-    differents1 = diff_csv('annuaire_20161022.csv', 'annuaire_20161026.csv',
-                           keep=keep_for_sirene)
+    differents1 = diff_csv(name1, name2, keep=keep_for_sirene)
     differents2 = diff_csv('annuaire_20161026.csv', 'annuaire_20161102.csv',
                             keep=keep_for_sirene)
     differents3 = diff_csv('annuaire_20161022.csv', 'annuaire_20161102.csv',
