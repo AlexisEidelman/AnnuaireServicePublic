@@ -203,3 +203,14 @@ def rdf_extraction(name):
         json.dump(tree, outfile, indent=2, sort_keys=True, ensure_ascii=False) 
 
     tab_avec_liens.to_csv(csv_name, index=False, encoding='utf8')    
+
+
+if __name__ == '__main__':
+    files = os.listdir(path['data'])
+    names = [file[:-4] for file in files]
+    
+    for name in names:
+        csv_name = os.path.join(path['csv'], name + '.csv')
+        json_name = os.path.join(path['json'], name + '.json')
+        if not os.path.exists(csv_name) or not os.path.exists(json_name):
+            rdf_extraction(name)
