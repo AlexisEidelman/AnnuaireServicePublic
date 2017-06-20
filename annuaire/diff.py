@@ -21,9 +21,10 @@ def diff_csv(name1, name2, verbose=True, keep=None, drop=None):
     tab2 = load_csv(name2, drop, keep)
     
     merge_on = ['index']
+    suffixes = ('_old','_new')
     merge = tab1.merge(tab2, on = merge_on,
                    indicator=True, how='outer',
-                   suffixes=('_old','_new'))
+                   suffixes=suffixes)
     
     
     if verbose:
@@ -32,26 +33,35 @@ def diff_csv(name1, name2, verbose=True, keep=None, drop=None):
                 sum(merge._merge == 'left_only')))
         print(merge._merge.value_counts())
 
-    cols_x = [col for col in merge.columns if col[-2:] == '_old']
-    cols_y = [col for col in merge.columns if col[-2:] == '_new']
+    return merge
+
+
+def analyse_par_variable(merge, suffixes, verbose=True):
+    cols_x = [col for col in merge.columns if col.endswith(suffixes[0])]
+    cols_y = [col for col in merge.columns if col.endswith(suffixes[1])]
 
     merge_y = merge[cols_y].rename(columns=dict(x for x in zip(cols_y, cols_x)))
-    similar = merge[cols_x] == merge_y 
+    similar = merge[cols_x] == (merge_y)
     differents = ~similar.all(axis=1)
+    
     if verbose:
-        print("il y a {} differences sur {} entités".format(
+        print("On a en tout {} entités qui ont changé parmi {}".format(
             sum(differents),
             len(merge))
             )
     
     if verbose:
-        print((~similar).sum())
+        print('par variable cela représente \n ', (~similar).sum())
     
     diff = merge[differents]
-    diff[cols_x] = diff[cols_x].mask(similar)
-    diff[cols_y] = diff[cols_y].mask(similar)
+    diff.loc[:,cols_x] = diff[cols_x].mask(similar[differents].values)
+    diff.loc[:,cols_y] = diff[cols_y].mask(similar[differents].values)
     diff[cols_x] += ' -> ' + merge_y[differents]
-    return diff[merge_on + cols_x + ['_merge']]
+    for col in cols_x:
+        print(col)
+        print (diff[col].unique(), '\n')
+        
+    return diff[['index'] + cols_x + ['_merge']]
 
 
 def revient_a_la_valeur_initiale(name1, name2, name3, keep=None, drop=None):
@@ -90,17 +100,24 @@ if __name__ == '__main__':
 #                                        'annuaire_20161026.csv')
 #                                        
     path_csv = path['csv']
-    name1 = os.listdir(path_csv)[0]
-    name2 = os.listdir(path_csv)[1]
+    listfiles = os.listdir(path_csv)
+    listfiles.sort()
+    name1 = listfiles[-2]
+    name2 = listfiles[-1]
     
     basic_drop =  ['http://www.mondeca.com/system/basicontology#updated_the',
-                   'an/telecopie', 'an/telephone'] 
+                   'http://www.mondeca.com/system/basicontology#created_the_lien',
+                   'an/telecopie', 'an/telephone',
+                   'commentaire',
+                   ] 
     keep_for_sirene = ['index', 'parent',
                        'an/adressePhysiqueCodePostal',
                        'an/adressePhysiqueVille',
                        'http://www.w3.org/2000/01/rdf-schema#label',
                        ]                            
-    differents1 = diff_csv(name1, name2, keep=keep_for_sirene)
+    differents1 = diff_csv(name1, name2)
+    analyse_par_variable(differents1[differents1._merge == 'both'], ('_old','_new'))
+    
     differents2 = diff_csv('annuaire_20161026.csv', 'annuaire_20161102.csv',
                             keep=keep_for_sirene)
     differents3 = diff_csv('annuaire_20161022.csv', 'annuaire_20161102.csv',
