@@ -28,6 +28,13 @@ def load_csv(name, drop=None, keep=None):
     
     return tab
 
+
+def load_num_csv(num):
+    list_ = os.listdir(path['csv'])
+    list_.sort()
+    return load_csv(list_[num])
+    
+
 if __name__ == '__main__':
     files = os.listdir(path['csv'])
     files.sort()
