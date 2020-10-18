@@ -14,10 +14,14 @@ from annuaire.get_data.download import (
     read_list_of_tables, _get_version, downalod_zip, extract_file)
 from annuaire.config_annuaire import path
 
+
+# historique
 url_path = 'https://echanges.dila.gouv.fr/OPENDATA/RefOrgaAdminEtat/FluxHistorique/'
 
-for year in range(2017, 2020):
+for year in range(2017, 2021):
     url_path_ = url_path + str(year) + '/'
+    if year == 2020:
+        url_path_ = "https://echanges.dila.gouv.fr/OPENDATA/RefOrgaAdminEtat/FluxAnneeCourante/"
     files = read_list_of_tables(url_path_)
     files = [x for x in files if x is not None and 'latest' not in x]
     if "#index" in files:
@@ -34,11 +38,17 @@ for year in range(2017, 2020):
         downalod_zip(url_path_, file)
         extract_file(file)
 
-    files = os.listdir(path['data'])
-    names = [file[:-4] for file in files]
+files = os.listdir(path['data'])
+names = [file[:-4] for file in files]
 
-    for name in names:
-        csv_name = os.path.join(path['csv'], name + '.csv')
-        json_name = os.path.join(path['json'], name + '.json')
-        if not os.path.exists(csv_name) or not os.path.exists(json_name):
-            rdf_extraction(name)
+for name in names:
+
+    csv_name = os.path.join(path['csv'], name + '.csv')
+    json_name = os.path.join(path['json'], name + '.json')
+
+    origin_file = os.path.join(path['data'], name + '.rdf')
+
+    if not os.path.exists(csv_name) or not os.path.exists(json_name):
+        rdf_extraction(origin_file, path_csv=csv_name, path_json=json_name)
+
+

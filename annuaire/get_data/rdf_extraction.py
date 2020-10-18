@@ -2,7 +2,7 @@
 """
 @author: Alexis Eidelman
 
-Travaille sur les données issues de 
+Travaille sur les données issues de
 https://www.data.gouv.fr/fr/datasets/
 service-public-fr-annuaire-de-ladministration-base-de-donnees-nationales/
 
@@ -24,7 +24,7 @@ def all_triplets(g):
     ''' la requete de tous les triplets '''
     DF = rdflib.Namespace('http://www.df.gouv.fr/administration_francaise/annuaire#')
     requete =  g.query("""SELECT ?a ?b ?c
-        WHERE {?a ?b ?c }""", 
+        WHERE {?a ?b ?c }""",
         initNs={ 'df': DF })
     return requete
 
@@ -33,7 +33,7 @@ def triplets_to_dict(data):
     # pour simplifier l'écriture
     df = 'http://www.df.gouv.fr/administration_francaise/annuaire#'
     ann = 'http://lannuaire.service-public.fr/'
-    # crée un dictionnaire 
+    # crée un dictionnaire
     diction = dict()
     for row in data:
         index = row[0].toPython()
@@ -49,7 +49,7 @@ def triplets_to_dict(data):
 
 
 def _notnull_columns(tab):
-    ''' retourne les variables qui ont des 
+    ''' retourne les variables qui ont des
     valeurs non nulles '''
     nb_notnull = tab.notnull().sum()
     cols_notnull = nb_notnull[nb_notnull > 0]
@@ -77,7 +77,7 @@ def find_association(tab):
     type_ = tab["http://www.w3.org/1999/02/22-rdf-syntax-ns#type"]
 
     # certaines lignes correspondent à des associations :
-    association = tab[type_ == 'http://www.mondeca.com/system/t3#BN']    
+    association = tab[type_ == 'http://www.mondeca.com/system/t3#BN']
     association = _only_notnull_columns(association)
     # en gros, nt, Narrower Term c'est l'enfant
     # bt, Broader Term, c'est le parent
@@ -86,7 +86,7 @@ def find_association(tab):
         'http://www.mondeca.com/system/t3#nt': 'enfant',
         },
         inplace=True)
-    
+
     # il y a aussi les autres hiérarchies
     AutreHierarchie = tab[type_ == 'df/AutreHierarchie']
     AutreHierarchie = _only_notnull_columns(AutreHierarchie)
@@ -94,14 +94,14 @@ def find_association(tab):
         'df/serviceFils': 'enfant',
         'df/servicePere': 'parent',
         },
-        inplace=True)    
-    
+        inplace=True)
+
     return AutreHierarchie.append(association)
 
 
 def recursive_run(G, item, dico_values):
     ''' crée un dictionnaire à partir d'un Graph '''
-    children = [recursive_run(G, el, G[item][el]) 
+    children = [recursive_run(G, el, G[item][el])
                 for el in G.successors_iter(item)]
     dico_values['name'] = item
     if len(children) != 0:
@@ -116,16 +116,16 @@ def tree_from_df(tab_avec_liens):
     tab_avec_liens['parent'].fillna('source', inplace=True)
     usefull = tab_avec_liens[variables_fiche + ['parent', 'index']]
     usefull.columns = ['label', 'sigle', 'parent', 'index']
-    
+
     usefull['sigle'].fillna('nc.', inplace=True)
     usefull['label'].fillna('nc.', inplace=True)
-    
+
     G = nx.from_pandas_dataframe(
-        usefull, 
+        usefull,
         'parent', 'index', ['label', 'sigle'],
         nx.DiGraph()
         )
-    
+
     tree = recursive_run(G, 'source', dict())
     tree['label'] = 'source'
     return tree
@@ -152,7 +152,7 @@ def stat(tab, tab2):
     # => on retire 101 lignes
 
 #rdf_extraction('annuaire_gouv')
-def create_dico_to_json(df):    
+def create_dico_to_json(df):
     dico_to_json = dict()
     for row in df.values:
         element_ligne = dict([
@@ -166,10 +166,11 @@ def create_dico_to_json(df):
     return dico_to_json
 
 
-def rdf_extraction(name):
+def rdf_extraction(origin_file,
+                   path_json,
+                   path_csv):
     print(name)
     g = rdflib.Graph()
-    origin_file = os.path.join(path['data'], name + '.rdf')
     g.parse(origin_file, format='xml')
     data = all_triplets(g)
     diction = triplets_to_dict(data)
@@ -182,7 +183,7 @@ def rdf_extraction(name):
     type_conserves = ['an/ServiceRAF', 'df/Ministere']
     tab_entities = tab[type_entity == 'an/ServiceRAF'].reset_index()
     # on reset index parce que l'on veut conserver ça pendant le merge
-    
+
     tab_avec_liens = tab_entities.merge(assoc,
         left_on='index',
         right_on='enfant',
@@ -194,21 +195,17 @@ def rdf_extraction(name):
     tab_avec_liens.fillna('nc.', inplace=True)
     #tree = tree_from_df(tab_avec_liens)
     tree = create_dico_to_json(tab_avec_liens)
-    
-    json_name = os.path.join(path['json'], name + '.json')
-    csv_name = os.path.join(path['csv'], name + '.csv')
-    
-    
-    with open(json_name, 'w', encoding='utf8') as outfile:
-        json.dump(tree, outfile, indent=2, sort_keys=True, ensure_ascii=False) 
 
-    tab_avec_liens.to_csv(csv_name, index=False, encoding='utf8')    
+    with open(path_json, 'w', encoding='utf8') as outfile:
+        json.dump(tree, outfile, indent=2, sort_keys=True, ensure_ascii=False)
+
+    tab_avec_liens.to_csv(path_csv, index=False, encoding='utf8')
 
 
 if __name__ == '__main__':
     files = os.listdir(path['data'])
     names = [file[:-4] for file in files]
-    
+
     for name in names:
         csv_name = os.path.join(path['csv'], name + '.csv')
         json_name = os.path.join(path['json'], name + '.json')
