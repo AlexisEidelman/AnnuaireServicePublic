@@ -169,7 +169,6 @@ def create_dico_to_json(df):
 def rdf_extraction(origin_file,
                    path_json,
                    path_csv):
-    print(name)
     g = rdflib.Graph()
     g.parse(origin_file, format='xml')
     data = all_triplets(g)

@@ -92,3 +92,4 @@ ENV/
 annuaire_gouv.rdf
 AnnuaireServicePublic.csv
 annuaire/config_annuaire.py
+/data/*

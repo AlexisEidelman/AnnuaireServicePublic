@@ -2,7 +2,7 @@
 
 import os
 
-path_general_data = '/home/sgmap/data/annuaire'
+path_general_data = 'data/'
 
 path = dict()
 
